@@ -1,0 +1,53 @@
+object fAbout: TfAbout
+  Left = 0
+  Top = 0
+  BorderStyle = bsDialog
+  Caption = #1054' '#1087#1088#1086#1075#1088#1072#1084#1084#1077
+  ClientHeight = 336
+  ClientWidth = 522
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object lbMaze: TLabel
+    Left = 144
+    Top = 8
+    Width = 240
+    Height = 65
+    Caption = #1051#1072#1073#1080#1088#1080#1085#1090
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = 65
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
+  object mAbout: TMemo
+    Left = 0
+    Top = 79
+    Width = 521
+    Height = 258
+    Align = alCustom
+    BorderStyle = bsNone
+    Color = clBtnFace
+    DoubleBuffered = False
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentDoubleBuffered = False
+    ParentFont = False
+    ParentShowHint = False
+    ReadOnly = True
+    ScrollBars = ssVertical
+    ShowHint = False
+    TabOrder = 0
+  end
+end
