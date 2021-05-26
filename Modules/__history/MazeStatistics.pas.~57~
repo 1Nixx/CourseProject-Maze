@@ -1,0 +1,193 @@
+unit MazeStatistics;
+
+interface
+uses
+  MazeMain;
+
+type
+  //Parameters for comparison
+  TStatRoute = (SolveLength, FullRoute);
+
+  TStatSolveAlg = record
+    case AllSolveAlg: Boolean of
+      False: (SolveAlg: TMazeSolveAlg);
+  end;
+
+  TStatGenAlg = record
+    case AllGenAlg: Boolean of
+      False: (GenAlg: TMazeGenAlg);
+  end;
+
+  TYValueArr = array of Double;
+  TColumnNames = array of String;
+
+  function GetStatistic(const Condition: TStatRoute; const SolveAlg: TStatSolveAlg;
+                        const GenAlg: TStatGenAlg; const Sizeable: Boolean): TYValueArr;
+
+  Function GetColumnName(const SolveAlg: TStatSolveAlg; const GenAlg: TStatGenAlg; 
+                         const Sizeable: Boolean): TColumnNames;
+
+  Function GetChartTitleText(const Condition: TStatRoute; const SolveAlg: TStatSolveAlg;
+                             const GenAlg: TStatGenAlg; const Sizeable: Boolean): String;
+implementation
+uses
+  MazeSave;
+
+  //Calculate amount of columns in chart
+  procedure SetAnswLeng(var Answ; const SolveAlg: TStatSolveAlg;const GenAlg: TStatGenAlg; const Sizeable: Boolean); overload;
+  begin
+    if SolveAlg.AllSolveAlg = True then
+      SetLength(Answ, Ord(High(TMazeSolveAlg))+1)
+    else if GenAlg.AllGenAlg = True then
+      SetLength(Answ, Ord(High(TMazeGenAlg))+1)
+    else if Sizeable = True then
+      SetLength(Answ, Ord(High(TMazeSize))+1);
+  end;
+
+  procedure SetAnswLeng(var Answ: TColumnNames; const SolveAlg: TStatSolveAlg;const GenAlg: TStatGenAlg; const Sizeable: Boolean); overload;
+  begin
+    if SolveAlg.AllSolveAlg = True then
+      SetLength(Answ, Ord(High(TMazeSolveAlg))+1)
+    else if GenAlg.AllGenAlg = True then
+      SetLength(Answ, Ord(High(TMazeGenAlg))+1)
+    else if Sizeable = True then
+      SetLength(Answ, Ord(High(TMazeSize))+1);
+  end;
+
+  procedure CalcAverageNumb(var AnswArr: TYValueArr; const Amount: array of Integer);
+  var
+    I: Integer;
+  begin
+    for I := 0 to High(AnswArr) do
+      if Amount[I] <> 0 then
+        AnswArr[i] := AnswArr[I]/Amount[I];
+  end;
+
+  function GetDistBetweenPoints(const Point1, Point2: TPos): Double;
+  begin
+    Result := Sqrt(Sqr(Point1.PosX-Point2.PosX)+Sqr(Point1.PosY-Point2.PosY));  
+  end;
+
+  function GetStatistic(const Condition: TStatRoute; const SolveAlg: TStatSolveAlg;
+                        const GenAlg: TStatGenAlg; const Sizeable: Boolean): TYValueArr;
+  var
+    Stat: TMazeStat;
+    i: Integer;
+    SetSolveAlg: Set of TMazeSolveAlg;
+    SetGenAlg: Set of TMazeGenAlg;
+    MazeAmount: array of Integer;
+  begin
+
+    if SolveAlg.AllSolveAlg then
+      SetSolveAlg := [BFS, DFS, LeftHand, RightHand]
+    else
+      SetSolveAlg := [SolveAlg.SolveAlg];
+
+    if GenAlg.AllGenAlg then
+      SetGenAlg := [HuntAKill, BackTrack, Prim]
+    else
+      SetGenAlg := [GenAlg.GenAlg];
+
+    SetAnswLeng(Result, SolveAlg, GenAlg, Sizeable);
+    SetLength(MazeAmount, Length(Result));
+    for I := GetRecordsAmount(TypeFileAddr) downto 1 do
+    begin
+      Stat := ReadFromTypeFile(I, TypeFileAddr);
+
+      if Stat.MazeSolveAlg in SetSolveAlg then
+      begin
+        if Stat.MazeGenAlg in SetGenAlg then
+        begin
+          if Sizeable = True then
+          begin
+            Inc(MazeAmount[Ord(Stat.MazeSize)]);
+            Result[Ord(Stat.MazeSize)] := Result[Ord(Stat.MazeSize)] + Stat.VisitedCells.Route/GetDistBetweenPoints(Stat.StartPoint, Stat.EndPoint)
+          end
+          else
+          begin
+            if SolveAlg.AllSolveAlg then
+            begin
+              Inc(MazeAmount[Ord(Stat.MazeSolveAlg)]);
+              if Condition = SolveLength then
+                Result[Ord(Stat.MazeSolveAlg)] := Result[Ord(Stat.MazeSolveAlg)] + Stat.VisitedCells.Route/GetDistBetweenPoints(Stat.StartPoint, Stat.EndPoint)
+              else
+                Result[Ord(Stat.MazeSolveAlg)] := Result[Ord(Stat.MazeSolveAlg)] + Stat.VisitedCells.FullRoute/GetDistBetweenPoints(Stat.StartPoint, Stat.EndPoint)
+            end
+            else if GenAlg.AllGenAlg then
+            begin
+              Inc(MazeAmount[Ord(Stat.MazeGenAlg)]);
+              if Condition = SolveLength then
+                Result[Ord(Stat.MazeGenAlg)] := Result[Ord(Stat.MazeGenAlg)] + Stat.VisitedCells.Route/GetDistBetweenPoints(Stat.StartPoint, Stat.EndPoint)
+              else
+                Result[Ord(Stat.MazeGenAlg)] := Result[Ord(Stat.MazeGenAlg)] + Stat.VisitedCells.FullRoute/GetDistBetweenPoints(Stat.StartPoint, Stat.EndPoint);
+            end;
+          end;
+        end;
+      end;
+    end;
+    CalcAverageNumb(Result, MazeAmount);
+  end;
+
+  Function GetColumnName(const SolveAlg: TStatSolveAlg; const GenAlg: TStatGenAlg;
+                         const Sizeable: Boolean): TColumnNames;
+  var
+    I: Integer;
+  Begin
+    SetAnswLeng(Result, SolveAlg, GenAlg, Sizeable);  
+
+    for I := Low(Result) to High(Result) do
+      if SolveAlg.AllSolveAlg then
+        Result[I] := GetSolveAlgStr(TMazeSolveAlg(I))
+      else if GenAlg.AllGenAlg then
+        Result[I] := GetGenAlgStr(TMazeGenAlg(I))
+      else if Sizeable then
+        Result[I] := GetMazeSizeStr(TMazeSize(I));
+  End;
+
+  Function GetChartTitleText(const Condition: TStatRoute; const SolveAlg: TStatSolveAlg;
+                             const GenAlg: TStatGenAlg; const Sizeable: Boolean): String;
+
+    Function GetGenAlgSetStr(const GenerationCond: TStatGenAlg): String;
+    var
+      I: Integer;
+    Begin
+      Result := '';
+      if GenerationCond.AllGenAlg then
+      begin
+        for I := Ord(Low(TMazeGenAlg)) to Ord(High(TMazeGenAlg)) do
+          Result := Result + GetGenAlgStr(TMazeGenAlg(I)) + ', ';
+        SetLength(Result, Length(Result)-2);
+      end
+      else
+        Result := GetGenAlgStr(GenerationCond.GenAlg);
+        
+    end;
+
+    Function GetSolveAlgSetStr(const SolveCond: TStatSolveAlg): String;
+    var
+      I: Integer;
+    Begin
+      Result := '';
+      if SolveCond.AllSolveAlg then
+      begin
+        for I := Ord(Low(TMazeSolveAlg)) to Ord(High(TMazeSolveAlg)) do
+          Result := Result + GetSolveAlgStr(TMazeSolveAlg(I)) + ', ';
+        SetLength(Result, Length(Result)-2);
+      end
+      else
+        Result := GetSolveAlgStr(SolveCond.SolveAlg);
+        
+    end;
+
+  begin
+    Result := '';
+    if Condition = SolveLength then
+      Result := 'Средняя длина прохождения для алгоритма(ов) генерации '
+                 + GetGenAlgSetStr(GenAlg) + '.'
+    else
+      Result := 'Кол-во посещенных клеток для алгоритма(ов) прохождения '
+                + GetSolveAlgSetStr(SolveAlg) + ' и алгоритма(ов) генерации ' 
+                + GetGenAlgSetStr(GenAlg) + '.';
+  end;
+  
+end.
